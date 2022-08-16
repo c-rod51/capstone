@@ -6,12 +6,12 @@ use capstoneGroup2Database
 
 create table Indicator(
     IndicatorID int primary key identity(1,1),
-    IndicatorLabel nvarchar(25) not null
-)
+    IndicatorLabel nvarchar(50) not null
+);
 
 create table [Group](
     GroupID int primary key identity(1,1),
-    GroupLabel nvarchar(25) not null
+    GroupLabel nvarchar(50) not null
 )
 
 create table Age(
@@ -26,12 +26,12 @@ create table Sex(
 
 create table Race(
     RaceID int primary key identity(1,1),
-    RaceLabel nvarchar(25) not null
+    RaceLabel nvarchar(50) not null
 )
 
 create table Education(
     EducationID int primary key identity(1,1),
-    EducationLabel nvarchar(25) not null
+    EducationLabel nvarchar(50) not null
 )
 
 create table [State](
@@ -47,15 +47,15 @@ create table Week(
 
 create table InsuranceCoverage(
     DataID int primary key identity(1,1),
-    DataValue decimal(15,3) not null,
-    IndicatorID int not null,
-    GroupID int not null,
-    AgeID int not null,
-    SexID int not null,
-    RaceID int not null,
-    EducationID int not null,
-    StateID int not null,
-    WeekID int not null,
+    DataValue decimal(15,3) null,
+    IndicatorID int null,
+    GroupID int null,
+    AgeID int null,
+    SexID int null,
+    RaceID int null,
+    EducationID int null,
+    StateID int null,
+    WeekID int null,
     constraint fk_InsuranceCoverage_IndicatorID
         foreign key(IndicatorID)
         references Indicator(IndicatorID),
@@ -125,26 +125,32 @@ create table InsuranceCharges(
 
 create table Geocat(
     GeoID int primary key identity(1,1),
-    GeoCategory int not null
+    GeoCategory nvarchar(50) not null
 )
 
 create table County(
     CountyID int primary key identity(1,1),
-    CountyLabel nvarchar(25) null
+    CountyLabel nvarchar(50) null
+)
+
+create table Income(
+    IncomeID int primary key identity(1,1),
+    IncomeLabel nvarchar(50) not NULL
 )
 
 create table SAHIE(
     SAHIEID int primary key identity(1,1),
-    [Percent_of_Demographic_Uninsured_by_Income_Category] decimal(3,3) not null,
-    [Percent_of_Demographic_Insured_by_Income_Category] decimal(3,3) not null,
-    [Total_Percent_of_Demographic_Uninsured] decimal(3,3) not null,
-    [Total_Percent_of_Demographic_Insured] decimal(3,3) not null,
+    [Percent_of_Demographic_Uninsured_by_Income_Category] decimal(10,3) not null,
+    [Percent_of_Demographic_Insured_by_Income_Category] decimal(10,3) not null,
+    [Total_Percent_of_Demographic_Uninsured] decimal(10,3) not null,
+    [Total_Percent_of_Demographic_Insured] decimal(10,3) not null,
     AgeID int not null,
     SexID int not null,
     RaceID int not null,
     StateID int not null,
     GeoID int not null,
-    CountyID int not null,
+    CountyID int null,
+    IncomeID int not null,
     constraint fk_SAHIE_AgeID
         foreign key(AgeID)
         references Age(AgeID),
@@ -162,5 +168,28 @@ create table SAHIE(
         references Geocat(GeoID),
     constraint fk_SAHIE_CountyID
         foreign key(CountyID)
-        references County(CountyID)
+        references County(CountyID),
+    constraint fk_SAHIE_IncomeID
+        foreign key(IncomeID)
+        references Income(IncomeID)
 )
+
+drop table Region;
+drop table Indicator;
+drop table Age;
+drop table Children;
+drop table Education;
+drop table [Group];
+drop table Race;
+drop table Sex;
+drop table Smoker;
+drop table [State];
+drop table Week;
+drop table Geocat;
+drop table County;
+drop table Income;
+
+drop table InsuranceCharges;
+drop table InsuranceCoverage;
+drop table SAHIE;
+
