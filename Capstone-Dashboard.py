@@ -38,20 +38,35 @@ try:
     inner join Children C on  I.ChildrenID = C.ChildrenID
     inner join Region R on  I.RegionID = R.RegionID
     inner join Sex S on  I.SexID = S.SexID
-    inner join Smoker Sm on  I.SmokerID = Sm.SmokerID'''
+    inner join Smoker Sm on  I.SmokerID = Sm.SmokerID
+    '''
     dfcosts = pd.read_sql(querycosts, conn)
 
     querycosts2 = '''Select avg(I.ChargeValue) as ChargeValue, C.ChildrenLabel 
     from InsuranceCharges I
     inner join Children C on  I.ChildrenID = C.ChildrenID
-    group by C.ChildrenLabel'''
+    group by C.ChildrenLabel
+    '''
+
+    querysahie = '''
+    select *
+    from SAHIE
+    left join Income on Income.IncomeID = SAHIE.IncomeID
+    left join State on State.StateID = SAHIE.StateID
+    left join Age on Age.AgeID = SAHIE.AgeID
+    left join Sex on Sex.SexID = SAHIE.SexID
+    left join Race on Race.RaceID = SAHIE.RaceID
+    left join Geocat on Geocat.GeoID = SAHIE.GeoID
+    '''
+    dfsahie = pd.read_sql(querysahie, conn)
+
 except Exception as e:
     print(e)
 
 dfcoverage2 = dfcoverage[['IndicatorLabel','DataValue', 'EducationLabel']]
 #print(df2)
-figcoverage = px.bar(dfcoverage2, x='EducationLabel', y='DataValue', color='IndicatorLabel', 
-title='Education vs Insured Status', barmode='group')
+figcoverage = px.bar(dfcoverage2, x='EducationLabel', y='DataValue', color='IndicatorLabel', title='Education vs Insured Status', 
+labels={'EducationLabel':'Highest Obtained Education', 'DataValue':'Percentage Insured'}, barmode='group')
 
 dfcoverage3 = dfcoverage[['IndicatorLabel','DataValue', 'SexLabel']]
 figcoverage2 = px.bar(dfcoverage3, x='SexLabel', y='DataValue', color='IndicatorLabel', 
@@ -61,13 +76,13 @@ dfcoverage4 = dfcoverage[dfcoverage['IndicatorLabel'] == 'Uninsured at the Time 
 dfcoverage4 = dfcoverage4[['IndicatorLabel','DataValue', 'StateLabel']]
 dfcoverage4 = dfcoverage4.head(10)
 figcoverage3 = px.bar(dfcoverage4, x='StateLabel', y='DataValue', color='IndicatorLabel', 
-title='States by Insured Status', barmode='group', range_y=(0,25), height=400, width=1000)
+title='Top 5 States by Percentage Uninsured', barmode='group', range_y=(0,25), height=400, width=1000)
 
 dfcoverage5 = dfcoverage[dfcoverage['IndicatorLabel'] == 'Uninsured at the Time of Interview']
 dfcoverage5 = dfcoverage5[['IndicatorLabel','DataValue', 'StateLabel']]
 dfcoverage5 = dfcoverage5.tail(6)
 figcoverage4 = px.bar(dfcoverage5, x='StateLabel', y='DataValue', color='IndicatorLabel', 
-title='States by Insured Status', barmode='group', range_y=(0,25), height=400, width=1000)
+title='Bottom 5 States by Percentage Uninsured', barmode='group', range_y=(0,25), height=400, width=1000)
 
 #########################################################################################################
 
@@ -100,7 +115,43 @@ labels={'ChargeValue':'Health Costs', 'SmokerLabel':'Smoker Status'}, title='Smo
 
 ########################################################################################################
 
+sahie_income = dfsahie
+sahie_income = sahie_income[['IncomeLabel', 'Percent_of_Demographic_Insured_by_Income_Category']]
+sahie_income = sahie_income.groupby('IncomeLabel')['Percent_of_Demographic_Insured_by_Income_Category'].mean().reset_index(name='Mean Percentage Insured').sort_values('Mean Percentage Insured')
+sahie_income = sahie_income[sahie_income['IncomeLabel'] != 'Between 138% - 400% of poverty'].rename(columns={'IncomeLabel':'Income Category'})
+figsahie = px.bar(sahie_income, x='Income Category', y='Mean Percentage Insured', title='Percentage Insured by Income Category')
 
+sahie_states = dfsahie.loc[
+    (dfsahie['IncomeLabel'] == 'At or below 138% of poverty') &
+    (dfsahie['AgeLabel'] == 'Under 65 years') &
+    (dfsahie['GeoCategory'] == 'State geographic identifier') &
+    (dfsahie['SexLabel'] == 'both sexes') &
+    (dfsahie['RaceLabel'] == 'All races')
+]
+sahie_states = sahie_states[['StateLabel', 'Percent_of_Demographic_Insured_by_Income_Category']].sort_values('Percent_of_Demographic_Insured_by_Income_Category')
+sahie_states = sahie_states.rename(columns={'StateLabel':'State', 'Percent_of_Demographic_Insured_by_Income_Category':'Percentage Insured'})
+
+least_insured = sahie_states.head(5)
+figsahie2 = px.bar(least_insured, x='State', y='Percentage Insured', 
+title='Bottom 5 States by Percentage of Low Income Category Insured')
+
+most_insured = sahie_states.sort_values('Percentage Insured', ascending=False).head(5)
+figsahie3 = px.bar(most_insured, x='State', y='Percentage Insured', 
+title='Top 5 States by Percentage of Low Income Category Insured')
+
+least_group = dfsahie.loc[
+    (dfsahie['GeoCategory'] == 'State geographic identifier')&
+    (dfsahie['IncomeLabel'] != 'All income levels') &
+    (dfsahie['IncomeLabel'] != 'Between 138% - 400% of poverty') &
+    (dfsahie['AgeLabel'] != 'Under 65 years') &
+    (dfsahie['SexLabel'] != 'both sexes') &
+    (dfsahie['RaceLabel'] == 'All races')
+]
+least_group = least_group.groupby(by=['SexLabel','AgeLabel','IncomeLabel']).mean().reset_index()
+least_group = least_group.sort_values('Percent_of_Demographic_Uninsured_by_Income_Category', ascending=False).drop(columns=['CountyID','SAHIEID','Total_Percent_of_Demographic_Uninsured','Total_Percent_of_Demographic_Insured','Percent_of_Demographic_Insured_by_Income_Category'])
+least_group = least_group.rename(columns={'IncomeLabel':'Income Level', 'Percent_of_Demographic_Uninsured_by_Income_Category':'Mean Percentage Uninsured'})
+least_group['Demographic'] = least_group['SexLabel'] + ', ' + least_group['AgeLabel'] + ', ' + least_group['Income Level']
+figsahie4 = px.bar(least_group.head(10), x='Demographic', y='Mean Percentage Uninsured')
 
 #Link to fontawesome to get chevron icons
 FA = 'https://use.fontawesome.com/releases/v5.8.1/css/all.css'
@@ -247,7 +298,15 @@ def render_page_content(pathname):
                         id='Insured Status', 
                         figure=figcoverage4)
     elif pathname == '/insured-status/2':
-        return html.P('this is the insured status by income page')
+        return dcc.Graph(
+            id='Insured Status Income',
+            figure=figsahie), dcc.Graph(
+                id='Insured Status Income', 
+                figure=figsahie2), dcc.Graph(
+                    id='Insured Status Income', 
+                    figure=figsahie3), dcc.Graph(
+                        id='Insured Status Income', 
+                        figure=figsahie4)
     return dbc.Jumbotron(
         [
             html.H1("404: Not Found", className="text-danger"),
