@@ -314,7 +314,7 @@ sidebar = html.Div(
         html.H2('Health Insurance Data', className='display-4'),
         html.Hr(),
         html.P(
-            'Visualizations with data pertaining to health insurance', className='lead'
+            'Group 2: Christian Rodriguez, Philip Waymeyer, Savion Ponce, Victor Pham', className='lead'
         ),
         dbc.Nav(submenu_1 + submenu_2, vertical=True),
     ],
