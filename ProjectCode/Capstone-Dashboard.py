@@ -6,6 +6,8 @@ import plotly.express as px
 import pandas as pd
 from dash.dependencies import Input, Output, State
 import pymssql
+from sklearn.model_selection import train_test_split
+from joblib import dump, load
 
 from config import database
 from config import username
@@ -33,7 +35,8 @@ try:
     dfcoverage = pd.read_sql(querycoverage, conn)
 
     querycosts = '''Select I.ChargeID, I.ChargeValue, I.AgeID, A.AgeLabel, I.ChildrenID, C.ChildrenLabel, I.RegionID, 
-    R.RegionLabel, I.SexID, S.SexLabel, I.SmokerID, Sm.SmokerLabel, I.BMI from InsuranceCharges I
+    R.RegionLabel, I.SexID, S.SexLabel, I.SmokerID, Sm.SmokerLabel, I.BMI 
+    from InsuranceCharges I
     inner join Age A on I.AgeID = A.AgeID
     inner join Children C on  I.ChildrenID = C.ChildrenID
     inner join Region R on  I.RegionID = R.RegionID
@@ -64,62 +67,130 @@ except Exception as e:
     print(e)
 
 dfcoverage2 = dfcoverage[['IndicatorLabel','DataValue', 'EducationLabel']]
-#print(df2)
-figcoverage = px.bar(dfcoverage2, x='EducationLabel', y='DataValue', color='IndicatorLabel', title='Education vs Insured Status', 
-labels={'EducationLabel':'Highest Obtained Education', 'DataValue':'Percentage Insured'}, barmode='group')
+
+def figcoverage():
+    figcoverage = dcc.Graph(id='Insured Status', figure=px.bar(dfcoverage2, x='EducationLabel', y='DataValue', color='IndicatorLabel', title='Education vs Insured Status', 
+    labels={'EducationLabel':'Highest Obtained Education', 'DataValue':'Percentage Insured', 'IndicatorLabel':'Insured Status'}, barmode='group'))
+    return figcoverage
 
 dfcoverage3 = dfcoverage[['IndicatorLabel','DataValue', 'SexLabel']]
-figcoverage2 = px.bar(dfcoverage3, x='SexLabel', y='DataValue', color='IndicatorLabel', 
-title='Sex vs Insured Status', barmode='group', height=400, width=1000)
+
+def figcoverage2():
+    figcoverage2 = dcc.Graph(id='Insured Status', figure=px.bar(dfcoverage3, x='SexLabel', y='DataValue', color='IndicatorLabel', title='Sex vs Insured Status', 
+    labels={'SexLabel':'Sex', 'DataValue':'Percentage Insured', 'IndicatorLabel':'Insured Status'}, barmode='group', height=400, width=1000))
+    return figcoverage2
 
 dfcoverage4 = dfcoverage[dfcoverage['IndicatorLabel'] == 'Uninsured at the Time of Interview']
 dfcoverage4 = dfcoverage4[['IndicatorLabel','DataValue', 'StateLabel']]
 dfcoverage4 = dfcoverage4.head(10)
-figcoverage3 = px.bar(dfcoverage4, x='StateLabel', y='DataValue', color='IndicatorLabel', 
-title='Top 5 States by Percentage Uninsured', barmode='group', range_y=(0,25), height=400, width=1000)
+
+def figcoverage3():
+    figcoverage3 = dcc.Graph(id='Insured Status', figure=px.bar(dfcoverage4, x='StateLabel', y='DataValue', 
+    title='Top 5 States by Percentage Uninsured', labels={'StateLabel':'State', 'DataValue':'Percentage Insured'}, 
+    barmode='group', range_y=(0,25), height=400, width=800, color_discrete_sequence=['#00CC96']))
+    return figcoverage3
 
 dfcoverage5 = dfcoverage[dfcoverage['IndicatorLabel'] == 'Uninsured at the Time of Interview']
 dfcoverage5 = dfcoverage5[['IndicatorLabel','DataValue', 'StateLabel']]
 dfcoverage5 = dfcoverage5.tail(6)
-figcoverage4 = px.bar(dfcoverage5, x='StateLabel', y='DataValue', color='IndicatorLabel', 
-title='Bottom 5 States by Percentage Uninsured', barmode='group', range_y=(0,25), height=400, width=1000)
+
+def figcoverage4():
+    figcoverage4 = dcc.Graph(id='Insured Status', figure=px.bar(dfcoverage5, x='StateLabel', y='DataValue', 
+    title='Bottom 5 States by Percentage Uninsured', labels={'StateLabel':'State', 'DataValue':'Percentage Insured'}, 
+    barmode='group', range_y=(0,25), height=400, width=800, color_discrete_sequence=['#00CC96']))
+    return figcoverage4
+
+#########################################################################################################
+
+df = dfcosts[['AgeLabel', 'BMI', 'ChildrenLabel', 'RegionLabel', 'ChargeValue', 'SmokerLabel']]
+df['AgeLabel'] = df['AgeLabel'].astype('int64')
+df['ChildrenLabel'] = df['ChildrenLabel'].astype('int64')
+df_dummies = pd.get_dummies(df, columns = ['RegionLabel', 'SmokerLabel'], drop_first = True)
+X = df_dummies.drop(columns = 'ChargeValue').copy()
+y = df_dummies[['ChargeValue']].copy()
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state = 9)
+load_model = load('LinearRegressionTunedJoblib.model')
+charge_predictions = load_model.predict(X_test)
+charge_predictions_df = pd.DataFrame(charge_predictions, index=X_test.index, columns= ['ChargePredictions'])
+df_test = pd.concat([X_test, y_test], axis=1, join='inner')
+df_test['ChargePredictions'] = charge_predictions_df['ChargePredictions']
+
+def figML():
+    fig=px.scatter(df_test, x="ChargeValue", y="ChargePredictions", 
+    title="Predicted Cost vs Actual Cost",color="AgeLabel", symbol="SmokerLabel_True", opacity=0.4,
+    labels={"ChargeValue":"Actual Cost","ChargePredictions":"Predicted Cost","AgeLabel":"Age","SmokerLabel_True":"Smoker Status"})
+    fig.update_layout(coloraxis_colorbar=dict(orientation="h"))
+    figML = dcc.Graph(id='Predictive Model', figure=fig)
+    return figML
+
+def figML2():
+    fig=px.scatter(df_test, x="ChargeValue", y="ChargePredictions",
+    title="Predicted Cost vs Actual Cost",color="BMI", symbol="SmokerLabel_True", opacity=0.4,
+    labels={"ChargeValue":"Actual Cost","ChargePredictions":"Predicted Cost","SmokerLabel_True":"Smoker Status"})
+    fig.update_layout(coloraxis_colorbar=dict(orientation="h"))
+    figML2 = dcc.Graph(id='Predictive Model', figure=fig)
+    return figML2
 
 #########################################################################################################
 
 agedf = dfcosts[['ChargeValue', 'AgeID', 'AgeLabel', 'SmokerLabel']]
 agedf = agedf.sort_values('AgeLabel')
-figcosts = px.scatter(agedf, x='AgeLabel', y='ChargeValue', color='SmokerLabel', 
-title='Age vs Health Costs', labels={'AgeLabel':'Age', 'ChargeValue':'Health Costs'}, height=400, width=800)
+
+def figcosts():
+    figcosts = dcc.Graph(id='Health Costs', figure=px.scatter(agedf, x='AgeLabel', y='ChargeValue', color='SmokerLabel', 
+    title='Age vs Health Costs', labels={'AgeLabel':'Age', 'ChargeValue':'Health Costs', 'SmokerLabel':'Smoker Status'}, height=400, width=800))
+    return figcosts
 
 bmiDF = dfcosts[['ChargeValue', 'BMI', 'SmokerLabel']]
-figcosts2 = px.scatter(bmiDF, x='BMI', y='ChargeValue', color='SmokerLabel', title='Body Mass Index (BMI) vs Health Costs', 
-labels={'BMI':'Body Mass Index (BMI)', 'ChargeValue':'Health Costs'}, height=400, width=800)
+
+def figcosts2():
+    figcosts2 = dcc.Graph(id='Health Costs', figure=px.scatter(bmiDF, x='BMI', y='ChargeValue',
+    color='SmokerLabel', title='Body Mass Index (BMI) vs Health Costs', 
+    labels={'BMI':'Body Mass Index (BMI)', 'ChargeValue':'Health Costs', 'SmokerLabel':'Smoker Status'}, height=400, width=800))
+    return figcosts2
 
 childDf = pd.read_sql(querycosts2, conn)
-figcosts3 = px.bar(childDf, x='ChildrenLabel', y='ChargeValue', title='Number of Children vs Average Health Costs', 
-labels={'ChargeValue':'Average Health Costs', 'ChildrenLabel':'Number of Children'}, height=400, width=800)
+
+def figcosts3():
+    figcosts3 = dcc.Graph(id='Health Costs', figure=px.bar(childDf, x='ChildrenLabel', y='ChargeValue', 
+    title='Number of Children vs Average Health Costs', 
+    labels={'ChargeValue':'Average Health Costs', 'ChildrenLabel':'Number of Children'}, height=400, width=800))
+    return figcosts3
 
 regiondf = dfcosts[['ChargeValue', 'RegionID', 'RegionLabel']]
 regiondf = regiondf.sort_values('RegionID')
-figcosts4 = px.histogram(regiondf, x='RegionLabel', y='ChargeValue', 
-labels={'ChargeValue':'Health Costs', 'RegionLabel':'Region'}, title='Total Health Costs per Region', height=400, width=800)
+
+def figcosts4():
+    figcosts4 = dcc.Graph(id='Health Costs', figure=px.histogram(regiondf, x='RegionLabel', y='ChargeValue', 
+    labels={'ChargeValue':'Health Costs', 'RegionLabel':'Region'}, title='Total Health Costs per Region', height=400, width=800))
+    return figcosts4
 
 sexdf = dfcosts[['ChargeValue', 'SexID', 'SexLabel']]
-figcosts5 = px.box(sexdf, x='SexLabel', y='ChargeValue', 
-labels={'ChargeValue':'Health Costs', 'SexLabel':'Sex'}, title='Sex vs Health Costs', height=800, width=800)
+
+def figcosts5():
+    figcosts5 = dcc.Graph(id='Health Costs', figure=px.box(sexdf, x='SexLabel', y='ChargeValue', 
+    labels={'ChargeValue':'Health Costs', 'SexLabel':'Sex'}, title='Sex vs Health Costs', height=800, width=800))
+    return figcosts5
 
 smokerdf = dfcosts[['ChargeValue', 'SmokerID', 'SmokerLabel']]
 smokerdf = smokerdf.sort_values('SmokerLabel')
-figcosts6 = px.box(smokerdf, x='SmokerLabel', y='ChargeValue', 
-labels={'ChargeValue':'Health Costs', 'SmokerLabel':'Smoker Status'}, title='Smoking Status vs Health Costs', height=800, width=800)
 
-########################################################################################################
+def figcosts6():
+    figcosts6 = dcc.Graph(id='Health Costs', figure=px.box(smokerdf, x='SmokerLabel', y='ChargeValue', 
+    labels={'ChargeValue':'Health Costs', 'SmokerLabel':'Smoker Status'}, title='Smoking Status vs Health Costs', height=800, width=800))
+    return figcosts6
+
+#########################################################################################################
 
 sahie_income = dfsahie
 sahie_income = sahie_income[['IncomeLabel', 'Percent_of_Demographic_Insured_by_Income_Category']]
 sahie_income = sahie_income.groupby('IncomeLabel')['Percent_of_Demographic_Insured_by_Income_Category'].mean().reset_index(name='Mean Percentage Insured').sort_values('Mean Percentage Insured')
 sahie_income = sahie_income[sahie_income['IncomeLabel'] != 'Between 138% - 400% of poverty'].rename(columns={'IncomeLabel':'Income Category'})
-figsahie = px.bar(sahie_income, x='Income Category', y='Mean Percentage Insured', title='Percentage Insured by Income Category')
+
+def figsahie():
+    figsahie = dcc.Graph(id='Insured Status Income', figure=px.bar(sahie_income, x='Income Category', y='Mean Percentage Insured',
+    title='Percentage Insured by Income Category', height=500, width=800))
+    return figsahie
 
 sahie_states = dfsahie.loc[
     (dfsahie['IncomeLabel'] == 'At or below 138% of poverty') &
@@ -129,18 +200,24 @@ sahie_states = dfsahie.loc[
     (dfsahie['RaceLabel'] == 'All races')
 ]
 sahie_states = sahie_states[['StateLabel', 'Percent_of_Demographic_Insured_by_Income_Category']].sort_values('Percent_of_Demographic_Insured_by_Income_Category')
-sahie_states = sahie_states.rename(columns={'StateLabel':'State', 'Percent_of_Demographic_Insured_by_Income_Category':'Percentage Insured'})
+sahie_states = sahie_states.rename(columns={'StateLabel':'State (Low Income Category Only)', 'Percent_of_Demographic_Insured_by_Income_Category':'Percentage Insured'})
 
 least_insured = sahie_states.head(5)
-figsahie2 = px.bar(least_insured, x='State', y='Percentage Insured', 
-title='Bottom 5 States by Percentage of Low Income Category Insured')
+
+def figsahie2():
+    figsahie2 = dcc.Graph(id='Insured Status Income', figure=px.bar(least_insured, x='State (Low Income Category Only)', y='Percentage Insured', 
+    title='Bottom 5 States by Percentage Insured in Low Income Category', range_y=(0,95), height=400, width=800))
+    return figsahie2
 
 most_insured = sahie_states.sort_values('Percentage Insured', ascending=False).head(5)
-figsahie3 = px.bar(most_insured, x='State', y='Percentage Insured', 
-title='Top 5 States by Percentage of Low Income Category Insured')
+
+def figsahie3():
+    figsahie3 = dcc.Graph(id='Insured Status Income', figure=px.bar(most_insured, x='State (Low Income Category Only)', y='Percentage Insured', 
+    title='Top 5 States by Percentage Insured in Low Income Category', range_y=(0,95), height=400, width=800))
+    return figsahie3
 
 least_group = dfsahie.loc[
-    (dfsahie['GeoCategory'] == 'State geographic identifier')&
+    (dfsahie['GeoCategory'] == 'State geographic identifier') &
     (dfsahie['IncomeLabel'] != 'All income levels') &
     (dfsahie['IncomeLabel'] != 'Between 138% - 400% of poverty') &
     (dfsahie['AgeLabel'] != 'Under 65 years') &
@@ -151,7 +228,11 @@ least_group = least_group.groupby(by=['SexLabel','AgeLabel','IncomeLabel']).mean
 least_group = least_group.sort_values('Percent_of_Demographic_Uninsured_by_Income_Category', ascending=False).drop(columns=['CountyID','SAHIEID','Total_Percent_of_Demographic_Uninsured','Total_Percent_of_Demographic_Insured','Percent_of_Demographic_Insured_by_Income_Category'])
 least_group = least_group.rename(columns={'IncomeLabel':'Income Level', 'Percent_of_Demographic_Uninsured_by_Income_Category':'Mean Percentage Uninsured'})
 least_group['Demographic'] = least_group['SexLabel'] + ', ' + least_group['AgeLabel'] + ', ' + least_group['Income Level']
-figsahie4 = px.bar(least_group.head(10), x='Demographic', y='Mean Percentage Uninsured')
+
+def figsahie4():
+    figsahie4 = dcc.Graph(id='Insured Status Income', figure=px.bar(least_group.head(10), x='Demographic', y='Mean Percentage Uninsured', 
+    title='Top 10 Demographics by Percentage Uninsured', height=500, width=1200, color_discrete_sequence=['#00CC96']))
+    return figsahie4
 
 #Link to fontawesome to get chevron icons
 FA = 'https://use.fontawesome.com/releases/v5.8.1/css/all.css'
@@ -233,7 +314,7 @@ sidebar = html.Div(
         html.H2('Health Insurance Data', className='display-4'),
         html.Hr(),
         html.P(
-            'Visualizations with data pertaining to health insurance', className='lead'
+            'Group 2: Christian Rodriguez, Philip Waymeyer, Savion Ponce, Victor Pham', className='lead'
         ),
         dbc.Nav(submenu_1 + submenu_2, vertical=True),
     ],
@@ -272,41 +353,20 @@ for i in [1,2]:
 @app.callback(Output('page-content', 'children'),[Input('url', 'pathname')])
 def render_page_content(pathname):
     if pathname in ['/', '/health-costs/1']:
-        return dcc.Graph(
-            id='Health Costs',
-            figure=figcosts), dcc.Graph(
-                id='Health Costs', 
-                figure=figcosts2), dcc.Graph(
-                    id='Health Costs', 
-                    figure=figcosts3), dcc.Graph(
-                        id='Health Costs', 
-                        figure=figcosts4), dcc.Graph(
-                            id='Health Costs', 
-                            figure=figcosts5), dcc.Graph(
-                                id='Health Costs', 
-                                figure=figcosts6)
+        return html.Div([html.H1("Health Costs by Demographics"),figcosts(), 
+        figcosts2(), figcosts3(), figcosts4(), figcosts5(), figcosts6()],id='health costs 1')
+
     elif pathname == '/health-costs/2':
-        return html.P("this is the ML model page")
+        return html.Div([html.H1("Predictive Model of Health Costs"),figML(),figML2()],id='health costs 2')
+
     elif pathname == '/insured-status/1':
-        return dcc.Graph(
-            id='Insured Status',
-            figure=figcoverage), dcc.Graph(
-                id='Insured Status', 
-                figure=figcoverage2), dcc.Graph(
-                    id='Insured Status', 
-                    figure=figcoverage3), dcc.Graph(
-                        id='Insured Status', 
-                        figure=figcoverage4)
+        return html.Div([html.H1("Insured Status by Demographics"),figcoverage(), figcoverage2(), 
+        figcoverage3(), figcoverage4()],id='insured status 1')
+
     elif pathname == '/insured-status/2':
-        return dcc.Graph(
-            id='Insured Status Income',
-            figure=figsahie), dcc.Graph(
-                id='Insured Status Income', 
-                figure=figsahie2), dcc.Graph(
-                    id='Insured Status Income', 
-                    figure=figsahie3), dcc.Graph(
-                        id='Insured Status Income', 
-                        figure=figsahie4)
+        return html.Div([html.H1("Insured Status by Income Category"),figsahie(), figsahie2(), 
+        figsahie3(), figsahie4()],id='insured status 2')
+
     return dbc.Jumbotron(
         [
             html.H1("404: Not Found", className="text-danger"),
