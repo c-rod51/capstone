@@ -116,16 +116,16 @@ df_test = pd.concat([X_test, y_test], axis=1, join='inner')
 df_test['ChargePredictions'] = charge_predictions_df['ChargePredictions']
 
 def figML():
-    fig=px.scatter(df_test, x="ChargeValue", y="ChargePredictions", 
-    title="Predicted Cost vs Actual Cost",color="AgeLabel", symbol="SmokerLabel_True", opacity=0.4,
-    labels={"ChargeValue":"Actual Cost","ChargePredictions":"Predicted Cost","AgeLabel":"Age","SmokerLabel_True":"Smoker Status"})
+    fig=px.scatter(df_test, x="ChargeValue", y="ChargePredictions", title="Predicted Cost vs Actual Cost",
+    color="AgeLabel", symbol="SmokerLabel_True", opacity=0.4, symbol_map={0:"circle",1:"cross"},
+    labels={"ChargeValue":"Actual Cost ($USD)","ChargePredictions":"Predicted Cost ($USD)","AgeLabel":"Age","SmokerLabel_True":"Smoker Status"})
     fig.update_layout(coloraxis_colorbar=dict(orientation="h"))
     figML = dcc.Graph(id='Predictive Model', figure=fig)
     return figML
 
 def figML2():
-    fig=px.scatter(df_test, x="ChargeValue", y="ChargePredictions",
-    title="Predicted Cost vs Actual Cost",color="BMI", symbol="SmokerLabel_True", opacity=0.4,
+    fig=px.scatter(df_test, x="ChargeValue", y="ChargePredictions",title="Predicted Cost vs Actual Cost",
+    color="BMI", symbol="SmokerLabel_True", opacity=0.4, symbol_map={0:"circle",1:"cross"},
     labels={"ChargeValue":"Actual Cost ($USD)","ChargePredictions":"Predicted Cost ($USD)","SmokerLabel_True":"Smoker Status"})
     fig.update_layout(coloraxis_colorbar=dict(orientation="h"))
     figML2 = dcc.Graph(id='Predictive Model', figure=fig)
@@ -157,20 +157,21 @@ def figcosts3():
     labels={'ChargeValue':'Average Health Costs ($USD)', 'ChildrenLabel':'Number of Children'}, height=400, width=800))
     return figcosts3
 
-regiondf = dfcosts[['ChargeValue', 'RegionID', 'RegionLabel']]
-regiondf = regiondf.sort_values('RegionID')
+########## Not including this visualization ######################
+# regiondf = dfcosts[['ChargeValue', 'RegionID', 'RegionLabel']]
+# regiondf = regiondf.sort_values('RegionID')
 
-def figcosts4():
-    figcosts4 = dcc.Graph(id='Health Costs', figure=px.histogram(regiondf, x='RegionLabel', y='ChargeValue', 
-    labels={'ChargeValue':'Health Costs ($USD)', 'RegionLabel':'Region'}, title='Total Health Costs per Region', height=400, width=800))
-    return figcosts4
+# def figcosts4():
+#     figcosts4 = dcc.Graph(id='Health Costs', figure=px.histogram(regiondf, x='RegionLabel', y='ChargeValue', 
+#     labels={'ChargeValue':'Health Costs ($USD)', 'RegionLabel':'Region'}, title='Total Health Costs per Region', height=400, width=800))
+#     return figcosts4
 
-sexdf = dfcosts[['ChargeValue', 'SexID', 'SexLabel']]
+# sexdf = dfcosts[['ChargeValue', 'SexID', 'SexLabel']]
 
-def figcosts5():
-    figcosts5 = dcc.Graph(id='Health Costs', figure=px.box(sexdf, x='SexLabel', y='ChargeValue', 
-    labels={'ChargeValue':'Health Costs ($USD)', 'SexLabel':'Sex'}, title='Sex vs Health Costs', height=800, width=800))
-    return figcosts5
+# def figcosts5():
+#     figcosts5 = dcc.Graph(id='Health Costs', figure=px.box(sexdf, x='SexLabel', y='ChargeValue', 
+#     labels={'ChargeValue':'Health Costs ($USD)', 'SexLabel':'Sex'}, title='Sex vs Health Costs', height=800, width=800))
+#     return figcosts5
 
 smokerdf = dfcosts[['ChargeValue', 'SmokerID', 'SmokerLabel']]
 smokerdf = smokerdf.sort_values('SmokerLabel')
@@ -354,10 +355,15 @@ for i in [1,2]:
 def render_page_content(pathname):
     if pathname in ['/', '/health-costs/1']:
         return html.Div([html.H1("Health Costs by Demographics"),figcosts(), 
-        figcosts2(), figcosts3(), figcosts4(), figcosts5(), figcosts6()],id='health costs 1')
+        figcosts2(), figcosts3(), figcosts6(),html.P('t-test Results: p = 1.0e-283')],id='health costs 1')
 
     elif pathname == '/health-costs/2':
-        return html.Div([html.H1("Predictive Model of Health Costs"),figML(),figML2()],id='health costs 2')
+        return html.Div([html.H1("Predictive Model of Health Costs with Linear Regression"),
+        html.P('''
+        Used the sklearn LinearRegression model with age, BMI, children, region, and smoker status as the independent variables.
+        Preprocessed independent variables with polynomial_features of degree 3.
+        '''),
+        figML(),figML2()],id='health costs 2')
 
     elif pathname == '/insured-status/1':
         return html.Div([html.H1("Insured Status by Demographics"),figcoverage(), figcoverage2(), 
