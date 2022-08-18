@@ -126,7 +126,7 @@ def figML():
 def figML2():
     fig=px.scatter(df_test, x="ChargeValue", y="ChargePredictions",
     title="Predicted Cost vs Actual Cost",color="BMI", symbol="SmokerLabel_True", opacity=0.4,
-    labels={"ChargeValue":"Actual Cost","ChargePredictions":"Predicted Cost","SmokerLabel_True":"Smoker Status"})
+    labels={"ChargeValue":"Actual Cost ($USD)","ChargePredictions":"Predicted Cost ($USD)","SmokerLabel_True":"Smoker Status"})
     fig.update_layout(coloraxis_colorbar=dict(orientation="h"))
     figML2 = dcc.Graph(id='Predictive Model', figure=fig)
     return figML2
@@ -138,7 +138,7 @@ agedf = agedf.sort_values('AgeLabel')
 
 def figcosts():
     figcosts = dcc.Graph(id='Health Costs', figure=px.scatter(agedf, x='AgeLabel', y='ChargeValue', color='SmokerLabel', 
-    title='Age vs Health Costs', labels={'AgeLabel':'Age', 'ChargeValue':'Health Costs', 'SmokerLabel':'Smoker Status'}, height=400, width=800))
+    title='Age vs Health Costs', labels={'AgeLabel':'Age', 'ChargeValue':'Health Costs ($USD)', 'SmokerLabel':'Smoker Status'}, height=400, width=800))
     return figcosts
 
 bmiDF = dfcosts[['ChargeValue', 'BMI', 'SmokerLabel']]
@@ -146,7 +146,7 @@ bmiDF = dfcosts[['ChargeValue', 'BMI', 'SmokerLabel']]
 def figcosts2():
     figcosts2 = dcc.Graph(id='Health Costs', figure=px.scatter(bmiDF, x='BMI', y='ChargeValue',
     color='SmokerLabel', title='Body Mass Index (BMI) vs Health Costs', 
-    labels={'BMI':'Body Mass Index (BMI)', 'ChargeValue':'Health Costs', 'SmokerLabel':'Smoker Status'}, height=400, width=800))
+    labels={'BMI':'Body Mass Index (BMI)', 'ChargeValue':'Health Costs ($USD)', 'SmokerLabel':'Smoker Status'}, height=400, width=800))
     return figcosts2
 
 childDf = pd.read_sql(querycosts2, conn)
@@ -154,7 +154,7 @@ childDf = pd.read_sql(querycosts2, conn)
 def figcosts3():
     figcosts3 = dcc.Graph(id='Health Costs', figure=px.bar(childDf, x='ChildrenLabel', y='ChargeValue', 
     title='Number of Children vs Average Health Costs', 
-    labels={'ChargeValue':'Average Health Costs', 'ChildrenLabel':'Number of Children'}, height=400, width=800))
+    labels={'ChargeValue':'Average Health Costs ($USD)', 'ChildrenLabel':'Number of Children'}, height=400, width=800))
     return figcosts3
 
 regiondf = dfcosts[['ChargeValue', 'RegionID', 'RegionLabel']]
@@ -162,14 +162,14 @@ regiondf = regiondf.sort_values('RegionID')
 
 def figcosts4():
     figcosts4 = dcc.Graph(id='Health Costs', figure=px.histogram(regiondf, x='RegionLabel', y='ChargeValue', 
-    labels={'ChargeValue':'Health Costs', 'RegionLabel':'Region'}, title='Total Health Costs per Region', height=400, width=800))
+    labels={'ChargeValue':'Health Costs ($USD)', 'RegionLabel':'Region'}, title='Total Health Costs per Region', height=400, width=800))
     return figcosts4
 
 sexdf = dfcosts[['ChargeValue', 'SexID', 'SexLabel']]
 
 def figcosts5():
     figcosts5 = dcc.Graph(id='Health Costs', figure=px.box(sexdf, x='SexLabel', y='ChargeValue', 
-    labels={'ChargeValue':'Health Costs', 'SexLabel':'Sex'}, title='Sex vs Health Costs', height=800, width=800))
+    labels={'ChargeValue':'Health Costs ($USD)', 'SexLabel':'Sex'}, title='Sex vs Health Costs', height=800, width=800))
     return figcosts5
 
 smokerdf = dfcosts[['ChargeValue', 'SmokerID', 'SmokerLabel']]
@@ -177,7 +177,7 @@ smokerdf = smokerdf.sort_values('SmokerLabel')
 
 def figcosts6():
     figcosts6 = dcc.Graph(id='Health Costs', figure=px.box(smokerdf, x='SmokerLabel', y='ChargeValue', 
-    labels={'ChargeValue':'Health Costs', 'SmokerLabel':'Smoker Status'}, title='Smoking Status vs Health Costs', height=800, width=800))
+    labels={'ChargeValue':'Health Costs ($USD)', 'SmokerLabel':'Smoker Status'}, title='Smoking Status vs Health Costs', height=800, width=800))
     return figcosts6
 
 #########################################################################################################
