@@ -86,7 +86,7 @@ dfcoverage4 = dfcoverage4.head(10)
 
 def figcoverage3():
     figcoverage3 = dcc.Graph(id='Insured Status', figure=px.bar(dfcoverage4, x='StateLabel', y='DataValue', 
-    title='Top 5 States by Percentage Uninsured', labels={'StateLabel':'State', 'DataValue':'Percentage Insured'}, 
+    title='Top 5 States by Percentage Uninsured', labels={'StateLabel':'State', 'DataValue':'Percentage Uninsured'}, 
     barmode='group', range_y=(0,25), height=400, width=800, color_discrete_sequence=['#00CC96']))
     return figcoverage3
 
@@ -96,7 +96,7 @@ dfcoverage5 = dfcoverage5.tail(6)
 
 def figcoverage4():
     figcoverage4 = dcc.Graph(id='Insured Status', figure=px.bar(dfcoverage5, x='StateLabel', y='DataValue', 
-    title='Bottom 5 States by Percentage Uninsured', labels={'StateLabel':'State', 'DataValue':'Percentage Insured'}, 
+    title='Bottom 5 States by Percentage Uninsured', labels={'StateLabel':'State', 'DataValue':'Percentage Uninsured'}, 
     barmode='group', range_y=(0,25), height=400, width=800, color_discrete_sequence=['#00CC96']))
     return figcoverage4
 
