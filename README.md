@@ -9,4 +9,5 @@ The contents of the project are described below.
   - ML: This folder contains the base machine learning model, an optimized model, a python notebook for visualizations, and a Joblib model.
   - Capstone-Dashboard.py: This is the Plotly Dash dashboard. A config file is needed to connect to the SQL database. **Important:** The Joblib model from the ML folder is needed to run the dashboard.
 - ProjectSpecifications: This folder contains the data sources, executive summary, exploratory questions, and the project plan.
-- *put something about technical report and presentation afer those are pushed*
+- Capstone-Presentation.pdf: The presentation slides in pdf format.
+- Capstone-Technical-Report.pdf: The technical project report.
